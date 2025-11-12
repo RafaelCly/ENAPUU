@@ -204,6 +204,12 @@ CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
     'http://127.0.0.1:8081',
 ])
 
+# CSRF Trusted Origins para producción (necesario para Vercel/Render)
+CSRF_TRUSTED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
+    'http://localhost:5173',
+    'http://localhost:8080',
+])
+
 # For convenience in development when DEBUG=True allow all origins (but prefer explicit list)
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
