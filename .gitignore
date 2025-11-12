@@ -22,3 +22,25 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python / Django
+# Virtual envs
+.venv/
+venv/
+env/
+
+# IDE/config
+__pycache__/
+*.py[cod]
+
+# Local Django database
+db.sqlite3
+*.sqlite3
+
+# Environment files (keep secrets out of git)
+*.env
+backend/.env
+backend/.env.local
+
+# logs
+*.log

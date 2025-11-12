@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutGrid, Plus, List, History, Truck, Bell, User as UserIcon } from "lucide-react";
+import { LayoutGrid, Plus, List, History, Truck, Bell, User as UserIcon, Calendar } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import CardStat from "@/components/CardStat";
@@ -16,6 +16,8 @@ const ClientDashboard = () => {
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
     const storedRole = localStorage.getItem("userRole");
+    const storedName = localStorage.getItem("userName");
+    const storedEmail = localStorage.getItem("userEmail");
     
     if (!storedUserId || storedRole !== "CLIENTE") {
       navigate("/");
@@ -23,8 +25,12 @@ const ClientDashboard = () => {
     }
     
     setUserId(storedUserId);
-    const foundUser = users.find(u => u.id === parseInt(storedUserId));
-    setUser(foundUser);
+    setUser({
+      id: parseInt(storedUserId),
+      name: storedName || 'Cliente',
+      email: storedEmail || '',
+      role: storedRole
+    });
   }, [navigate]);
 
   if (!user) return null;
@@ -36,7 +42,7 @@ const ClientDashboard = () => {
 
   const sidebarItems = [
     { name: "Dashboard", path: "/client/dashboard", icon: LayoutGrid },
-    { name: "Mis Tickets", path: "/client/my-tickets", icon: List },
+    { name: "Mis Reservas", path: "/client/my-tickets", icon: List },
     { name: "Historial", path: "/client/history", icon: History },
     { name: "Gestión de Flota", path: "/client/fleet", icon: Truck },
     //{ name: "Notificaciones", path: "/client/notifications", icon: Bell },
@@ -45,25 +51,25 @@ const ClientDashboard = () => {
 
   const quickActions = [
     {
-      title: "Ver Mis Tickets",
-      description: "Consulta el estado de todos tus tickets",
+      title: "Ver Mis Reservas",
+      description: "Consulta el estado de tus reservas y tickets",
       icon: List,
       action: () => navigate("/client/my-tickets"),
-      color: "bg-accent text-accent-foreground hover:bg-accent/90"
+      color: "bg-primary text-primary-foreground hover:bg-primary/90"
     },
     {
       title: "Historial",
       description: "Revisa el historial completo de operaciones",
       icon: History,
       action: () => navigate("/client/history"),
-      color: "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+      color: "bg-accent text-accent-foreground hover:bg-accent/90"
     },
     {
       title: "Gestionar Flota",
       description: "Administra tus vehículos y conductores",
       icon: Truck,
       action: () => navigate("/client/fleet"),
-      color: "bg-success text-success-foreground hover:bg-success/90"
+      color: "bg-secondary text-secondary-foreground hover:bg-secondary/80"
     }
   ];
 

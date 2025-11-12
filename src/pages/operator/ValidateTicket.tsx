@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { QrCode, CheckCircle2, XCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import OperatorLayout from "@/components/OperatorLayout";
 import { tickets } from "@/data/mocks";
 
 interface ValidateTicketProps {
@@ -15,6 +16,12 @@ interface ValidateTicketProps {
 const ValidateTicket = ({ operatorName }: ValidateTicketProps) => {
   const [qrCode, setQrCode] = useState("");
   const [validatedTicket, setValidatedTicket] = useState<any>(null);
+  const [userName, setUserName] = useState("Operario");
+  
+  useEffect(() => {
+    const storedName = localStorage.getItem("userName");
+    if (storedName) setUserName(storedName);
+  }, []);
 
   const handleValidate = () => {
     if (!qrCode.trim()) {
@@ -57,7 +64,8 @@ const ValidateTicket = ({ operatorName }: ValidateTicketProps) => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <OperatorLayout userName={userName}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -158,7 +166,8 @@ const ValidateTicket = ({ operatorName }: ValidateTicketProps) => {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </OperatorLayout>
   );
 };
 

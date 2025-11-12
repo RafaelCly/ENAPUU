@@ -17,12 +17,16 @@ import UsersView from "./pages/admin/UsersView";
 import SystemConfigView from "./pages/admin/SystemConfigView";
 import ReportsView from "./pages/admin/ReportsView";
 import SystemMonitor from "./pages/admin/SystemMonitor";
+import ZonasView from "./pages/admin/ZonasView";
+import SlotsView from "./pages/admin/SlotsView";
+import ContenedoresView from "./pages/admin/ContenedoresView";
 import NotFound from "./pages/NotFound";
 import ValidateTicket from "@/pages/operator/ValidateTicket";
 import RegisterEntry from "@/pages/operator/RegisterEntry";
 import RegisterExit from "@/pages/operator/RegisterExit";
 import TurnMonitor from "@/pages/operator/TurnMonitor";
 import QuickContainerQuery from "@/pages/operator/QuickContainerQuery";
+import ScanTicket from "@/pages/operator/ScanTicket";
 
 const queryClient = new QueryClient();
 
@@ -44,11 +48,15 @@ const App = () => (
           <Route path="/operator/panel" element={<OperatorPanel />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<UsersView />} />
+          <Route path="/admin/zonas" element={<ZonasView />} />
+          <Route path="/admin/slots" element={<SlotsView />} />
+          <Route path="/admin/contenedores" element={<ContenedoresView />} />
           <Route path="/admin/config" element={<SystemConfigView />} />
           <Route path="/admin/reports" element={<ReportsView />} />
           <Route path="/admin/monitor" element={<SystemMonitor />} />
           <Route path="*" element={<NotFound />} />
           <Route path="/operator/panel" element={<OperatorPanel />} />
+          <Route path="/operator/scan" element={<ScanTicket />} />
           <Route path="/operator/validate" element={<ValidateTicket operatorName="Carlos López" />} />
           <Route path="/operator/entry" element={<RegisterEntry operatorName="Carlos López" />} />
           <Route path="/operator/exit" element={<RegisterExit operatorName="Carlos López" />} />

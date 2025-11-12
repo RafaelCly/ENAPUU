@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, UserCog, ShieldCheck, Ship, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [targetPath, setTargetPath] = useState<string>("/");
+  const [users, setUsers] = useState<any[]>([]);
+  const [rolesMap, setRolesMap] = useState<Record<number,string>>({});
 
   const roles = [
     {
@@ -20,8 +22,6 @@ const Login = () => {
       description: "Gestiona tus tickets y flota",
       icon: User,
       path: "/client/dashboard",
-      demoEmail: "cliente@enapu.pe",
-      demoPassword: "1234",
       color: "bg-primary text-primary-foreground hover:bg-primary-light"
     },
     {
@@ -30,55 +30,112 @@ const Login = () => {
       description: "Valida y procesa tickets",
       icon: UserCog,
       path: "/operator/panel",
-      demoEmail: "operador@enapu.pe",
-      demoPassword: "1234",
       color: "bg-primary text-primary-foreground hover:bg-primary-light"
     },
     {
-      id: "ADMIN",
+      id: "ADMINISTRADOR",
       name: "Administrador",
       description: "Gestiona el sistema completo",
       icon: ShieldCheck,
       path: "/admin/dashboard",
-      demoEmail: "admin@enapu.pe",
-      demoPassword: "1234",
       color: "bg-primary text-primary-foreground hover:bg-primary-light"
     }
   ];
 
-  // Se llama al presionar la tarjeta: abre el formulario pre-llenado
+  // Se llama al presionar la tarjeta: abre el formulario vacío
   const openLoginFormForRole = (roleId: string) => {
     const role = roles.find(r => r.id === roleId);
     if (!role) return;
     setSelectedRole(roleId);
-    setEmail(role.demoEmail);
-    setPassword(role.demoPassword);
+    setEmail("");
+    setPassword("");
     setTargetPath(role.path);
     setShowForm(true);
   };
+  // Fetch users and roles from backend to allow real-user login
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const [rolesResp, usersResp] = await Promise.all([
+          fetch('http://127.0.0.1:8000/api/roles/', {
+            mode: 'cors',
+            credentials: 'include'
+          }).then(r => r.json()),
+          fetch('http://127.0.0.1:8000/api/usuarios/', {
+            mode: 'cors',
+            credentials: 'include'
+          }).then(r => r.json()),
+        ]);
+        if (!mounted) return;
+        const map: Record<number,string> = {};
+        rolesResp.forEach((r: any) => { map[r.id] = r.rol; });
+        setRolesMap(map);
+        setUsers(usersResp);
+      } catch (err) {
+        // ignore, keep demo mode
+        console.warn('Could not load users/roles', err);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
-  const simulateLogin = (roleId: string) => {
-    // Simular login guardando en localStorage
-    localStorage.setItem("userRole", roleId);
-    localStorage.setItem("userId", roleId === "CLIENTE" ? "1" : roleId === "OPERARIO" ? "3" : "5");
-    toast.success(`Bienvenido al sistema ENAPU`, {
-      description: `Has ingresado como ${roles.find(r => r.id === roleId)?.name}`
-    });
-  };
-
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!selectedRole) {
-      toast.error("Selecciona un rol antes de continuar");
+    if (!email || !password) {
+      toast.error("Ingresa email y contraseña");
       return;
     }
 
-    // Aquí podrías agregar validaciones de email/password.
-    simulateLogin(selectedRole);
+    try {
+      // Try real API login first
+      const response = await fetch('http://127.0.0.1:8000/api/usuarios/login/', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        mode: 'cors',
+        credentials: 'include',
+        body: JSON.stringify({ email, password })
+      });
 
-    setTimeout(() => {
-      navigate(targetPath);
-    }, 400);
+      if (response.ok) {
+        const data = await response.json();
+        const user = data.user;
+        const roleName = user.rol_nombre || 'OPERARIO';
+        
+        // Store user info
+        localStorage.setItem('userId', String(user.id));
+        localStorage.setItem('userRole', roleName);
+        localStorage.setItem('userName', user.nombre);
+        localStorage.setItem('userEmail', user.email);
+        
+        toast.success(`Bienvenido ${user.nombre}`, { 
+          description: `Has ingresado como ${roleName}` 
+        });
+        
+        // Navigate based on role
+        if (roleName === 'ADMINISTRADOR') {
+          navigate('/admin/dashboard');
+        } else if (roleName === 'OPERARIO') {
+          navigate('/operator/panel');
+        } else if (roleName === 'CLIENTE') {
+          navigate('/client/dashboard');
+        } else {
+          navigate('/');
+        }
+        return;
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Credenciales inválidas');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      toast.error('Error de conexión con el servidor', {
+        description: 'Por favor verifica que el backend esté funcionando'
+      });
+    }
   };
 
   return (
@@ -126,6 +183,37 @@ const Login = () => {
                 </Card>
               );
             })}
+            {/* If we have users loaded, show a panel with real users to click */}
+            {users.length > 0 && (
+              <div className="col-span-3 mt-6">
+                <h3 className="text-lg font-semibold mb-3 text-white">Usuarios disponibles (clic para login rápido)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {users.slice(0,9).map(u => {
+                    const rolNombre = u.rol_nombre || rolesMap[u.id_rol] || 'Usuario';
+                    const rolPath = rolNombre === 'ADMINISTRADOR' ? '/admin/dashboard' : 
+                                   rolNombre === 'OPERARIO' ? '/operator/panel' : '/client/dashboard';
+                    return (
+                      <button 
+                        key={u.id} 
+                        className="bg-white rounded-lg p-4 text-left shadow-md hover:shadow-xl transition-all hover:scale-105" 
+                        onClick={() => { 
+                          // Auto-fill form with this user's email
+                          setEmail(u.email);
+                          setPassword('');
+                          setSelectedRole(rolNombre === 'ADMINISTRADOR' ? 'ADMINISTRADOR' : rolNombre === 'OPERARIO' ? 'OPERARIO' : 'CLIENTE');
+                          setShowForm(true);
+                          setTargetPath(rolPath);
+                        }}
+                      >
+                        <div className="font-semibold text-base text-gray-800">{u.nombre}</div>
+                        <div className="text-sm text-gray-600 mt-1">Email: {u.email}</div>
+                        <div className="text-xs text-primary font-medium mt-2">Rol: {rolNombre}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="mt-6 flex justify-center">
@@ -176,12 +264,12 @@ const Login = () => {
 
                 <div className="mt-2 p-3 bg-gray-50 rounded-lg text-sm text-gray-600">
                   <div className="font-medium mb-1">Credenciales de prueba:</div>
-                  <ul className="list-disc list-inside">
-                    <li>Admin: admin@enapu.pe / 1234</li>
-                    <li>Operador: operador@enapu.pe / 1234</li>
-                    <li>Cliente: cliente@enapu.pe / 1234</li>
+                  <ul className="list-disc list-inside text-xs">
+                    <li>Admin: admin@enapu.com / admin123</li>
+                    <li>Operario: operario@enapu.com / operario123</li>
+                    <li>Cliente: cliente@empresa.com / cliente123</li>
                   </ul>
-                  <div className="mt-1 italic text-xs text-gray-500">O cualquier correo/contraseña para modo DEMO</div>
+                  <div className="mt-1 italic text-xs text-gray-500">Usa las credenciales correctas de la BD</div>
                 </div>
               </form>
             </div>

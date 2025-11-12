@@ -12,7 +12,13 @@ interface NavbarProps {
 
 const Navbar = ({ userRole, userName, notifications = 0 }: NavbarProps) => {
   const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(() => {
+    try {
+      return localStorage.getItem('mobileMenuOpen') === '1';
+    } catch {
+      return false;
+    }
+  });
 
   const handleLogout = () => {
     localStorage.removeItem("userRole");
@@ -100,7 +106,11 @@ const Navbar = ({ userRole, userName, notifications = 0 }: NavbarProps) => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              onClick={() => {
+                const next = !mobileMenuOpen;
+                setMobileMenuOpen(next);
+                try { localStorage.setItem('mobileMenuOpen', next ? '1' : '0'); } catch {}
+              }}
               className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-light"
             >
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}

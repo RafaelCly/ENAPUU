@@ -1,51 +1,169 @@
-import { useState } from "react";
-import { Search, Package } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Package, CheckCircle, XCircle, Clock } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { containers, tickets } from "@/data/mocks";
+import OperatorLayout from "@/components/OperatorLayout";
+import { apiFetch } from "@/lib/api";
+
+interface Contenedor {
+  id: number;
+  codigo_barras: string;
+  numero_contenedor: string;
+  tipo: string;
+  peso: number;
+  dimensiones: string;
+  buque_nombre: string;
+  cita_info: {
+    fecha_envio: string;
+    fecha_recojo: string;
+    cliente: string;
+    estado: string;
+  } | null;
+}
 
 const QuickContainerQuery = () => {
   const [containerId, setContainerId] = useState("");
   const [containerInfo, setContainerInfo] = useState<any>(null);
+  const [userName, setUserName] = useState("Operario");
+  const [contenedoresPendientes, setContenedoresPendientes] = useState<Contenedor[]>([]);
+  const [loading, setLoading] = useState(false);
+  
+  useEffect(() => {
+    const storedName = localStorage.getItem("userName");
+    if (storedName) setUserName(storedName);
+    loadContenedoresPendientes();
+  }, []);
 
-  const handleSearch = () => {
-    if (!containerId.trim()) {
-      toast.error("Por favor ingrese un ID de contenedor");
-      return;
-    }
+  const loadContenedoresPendientes = async () => {
+    try {
+      const [contenedores, tickets] = await Promise.all([
+        apiFetch('/contenedores/'),
+        apiFetch('/tickets/')
+      ]);
 
-    const container = containers.find(c => c.id === containerId.trim());
-    const relatedTicket = tickets.find(t => t.contenedorId === containerId.trim());
-
-    if (!container) {
-      toast.error("Contenedor no encontrado", {
-        description: "No se encontró ningún contenedor con este ID"
+      // Filtrar solo contenedores con cita y sin ticket
+      const pendientes = contenedores.filter((c: Contenedor) => {
+        const tieneTicket = tickets.some((t: any) => t.id_contenedor === c.id);
+        return c.cita_info && !tieneTicket;
       });
-      setContainerInfo(null);
+
+      setContenedoresPendientes(pendientes);
+    } catch (error) {
+      console.error('Error cargando contenedores:', error);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!containerId.trim()) {
+      toast.error("Por favor ingrese un código de barras");
       return;
     }
 
-    setContainerInfo({ ...container, ticket: relatedTicket });
-    toast.success("Contenedor encontrado");
+    setLoading(true);
+    try {
+      const contenedores = await apiFetch('/contenedores/');
+      const container = contenedores.find((c: Contenedor) => 
+        c.codigo_barras?.toLowerCase() === containerId.trim().toLowerCase()
+      );
+
+      if (!container) {
+        toast.error("Contenedor no encontrado", {
+          description: "No se encontró ningún contenedor con este código"
+        });
+        setContainerInfo(null);
+        return;
+      }
+
+      // Verificar si tiene ticket
+      const tickets = await apiFetch('/tickets/');
+      const relatedTicket = tickets.find((t: any) => t.id_contenedor === container.id);
+
+      setContainerInfo({ ...container, ticket: relatedTicket });
+      toast.success("Contenedor encontrado");
+    } catch (error) {
+      console.error('Error buscando contenedor:', error);
+      toast.error("Error al buscar contenedor");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <OperatorLayout userName={userName}>
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold mb-2">Consulta de Contenedores</h1>
+        <p className="text-muted-foreground">Ver contenedores pendientes de validar y buscar por código de barras</p>
+      </div>
+
+      {/* Lista de contenedores pendientes */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Contenedores Pendientes de Validar ({contenedoresPendientes.length})
+          </CardTitle>
+          <CardDescription>Contenedores con reserva confirmada que aún no han sido procesados</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {contenedoresPendientes.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Package className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p>No hay contenedores pendientes de validar</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-3 font-semibold">Código Barras</th>
+                    <th className="text-left p-3 font-semibold">Número</th>
+                    <th className="text-left p-3 font-semibold">Cliente</th>
+                    <th className="text-left p-3 font-semibold">Buque</th>
+                    <th className="text-left p-3 font-semibold">Tipo</th>
+                    <th className="text-left p-3 font-semibold">Fecha Recojo</th>
+                    <th className="text-left p-3 font-semibold">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {contenedoresPendientes.map((cont) => (
+                    <tr key={cont.id} className="border-b hover:bg-muted/50">
+                      <td className="p-3 font-mono text-sm">{cont.codigo_barras}</td>
+                      <td className="p-3">{cont.numero_contenedor}</td>
+                      <td className="p-3">{cont.cita_info?.cliente || '-'}</td>
+                      <td className="p-3">{cont.buque_nombre}</td>
+                      <td className="p-3">{cont.tipo}</td>
+                      <td className="p-3">{cont.cita_info?.fecha_recojo || '-'}</td>
+                      <td className="p-3">
+                        <Badge className="bg-warning text-warning-foreground">
+                          Pendiente
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Búsqueda */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
-            Consulta Rápida de Contenedor
+            Buscar Contenedor
           </CardTitle>
-          <CardDescription>Busca información de un contenedor por su ID</CardDescription>
+          <CardDescription>Busca información de cualquier contenedor por código de barras</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="containerInput">ID del Contenedor</Label>
+            <Label htmlFor="containerInput">Código de Barras</Label>
             <Input
               id="containerInput"
               placeholder="Ej: CONT-2024-001"
@@ -55,9 +173,9 @@ const QuickContainerQuery = () => {
             />
           </div>
           
-          <Button onClick={handleSearch} className="w-full" size="lg">
+          <Button onClick={handleSearch} className="w-full" size="lg" disabled={loading}>
             <Search className="h-4 w-4 mr-2" />
-            Buscar Contenedor
+            {loading ? 'Buscando...' : 'Buscar Contenedor'}
           </Button>
         </CardContent>
       </Card>
@@ -71,25 +189,14 @@ const QuickContainerQuery = () => {
           {containerInfo ? (
             <div className="space-y-4">
               <div className="p-4 bg-primary/10 rounded-lg border-2 border-primary">
-                <p className="text-sm font-medium text-muted-foreground mb-1">ID Contenedor</p>
-                <p className="text-lg font-bold font-mono">{containerInfo.id}</p>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Código de Barras</p>
+                <p className="text-lg font-bold font-mono">{containerInfo.codigo_barras}</p>
               </div>
 
               <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                  <span className="text-sm font-medium text-muted-foreground">Estado:</span>
-                  <Badge className={
-                    containerInfo.estado === "Retirado" ? "bg-success text-success-foreground" :
-                    containerInfo.estado === "Carga/Descarga" ? "bg-warning text-warning-foreground" :
-                    "bg-accent text-accent-foreground"
-                  }>
-                    {containerInfo.estado}
-                  </Badge>
-                </div>
-
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Ubicación:</span>
-                  <span className="font-medium">{containerInfo.ubicacion}</span>
+                  <span className="text-sm text-muted-foreground">Número:</span>
+                  <span className="font-medium">{containerInfo.numero_contenedor}</span>
                 </div>
 
                 <div className="flex justify-between items-center">
@@ -98,21 +205,66 @@ const QuickContainerQuery = () => {
                 </div>
 
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Peso:</span>
-                  <span className="font-medium">{containerInfo.peso}</span>
+                  <span className="text-sm text-muted-foreground">Dimensiones:</span>
+                  <span className="font-medium">{containerInfo.dimensiones}</span>
                 </div>
 
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Naviera:</span>
-                  <span className="font-medium">{containerInfo.naviera}</span>
+                  <span className="text-sm text-muted-foreground">Peso:</span>
+                  <span className="font-medium">{containerInfo.peso} kg</span>
                 </div>
 
-                {containerInfo.ticket && (
-                  <div className="mt-4 p-3 bg-accent/10 border border-accent rounded-lg">
-                    <p className="text-sm font-medium mb-2">Ticket Asociado:</p>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Buque:</span>
+                  <span className="font-medium">{containerInfo.buque_nombre}</span>
+                </div>
+
+                {containerInfo.cita_info && (
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      Reserva Confirmada
+                    </p>
                     <div className="space-y-1 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">ID:</span>
+                        <span className="text-muted-foreground">Cliente:</span>
+                        <span className="font-semibold">{containerInfo.cita_info.cliente}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Fecha Envío:</span>
+                        <span>{containerInfo.cita_info.fecha_envio || '-'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Fecha Recojo:</span>
+                        <span>{containerInfo.cita_info.fecha_recojo || '-'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Estado:</span>
+                        <Badge variant="outline">{containerInfo.cita_info.estado}</Badge>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!containerInfo.cita_info && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm font-medium mb-2 flex items-center gap-2 text-red-700">
+                      <XCircle className="h-4 w-4" />
+                      Sin Reserva
+                    </p>
+                    <p className="text-xs text-red-600">Este contenedor no tiene una cita/reserva asociada</p>
+                  </div>
+                )}
+
+                {containerInfo.ticket && (
+                  <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm font-medium mb-2 flex items-center gap-2 text-green-700">
+                      <CheckCircle className="h-4 w-4" />
+                      Ya Validado
+                    </p>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Ticket:</span>
                         <span className="font-semibold">#{containerInfo.ticket.id}</span>
                       </div>
                       <div className="flex justify-between">
@@ -122,18 +274,16 @@ const QuickContainerQuery = () => {
                     </div>
                   </div>
                 )}
-              </div>
 
-              <div className="border-t pt-4 mt-4">
-                <p className="text-sm font-semibold mb-3">Historial de Eventos:</p>
-                <div className="space-y-2">
-                  {containerInfo.historial.map((evento: any, index: number) => (
-                    <div key={index} className="text-sm p-2 bg-muted/30 rounded">
-                      <p className="font-medium">{evento.evento}</p>
-                      <p className="text-xs text-muted-foreground">{evento.fecha} - {evento.usuario}</p>
-                    </div>
-                  ))}
-                </div>
+                {!containerInfo.ticket && containerInfo.cita_info && (
+                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm font-medium flex items-center gap-2 text-yellow-700">
+                      <Clock className="h-4 w-4" />
+                      Pendiente de Validar
+                    </p>
+                    <p className="text-xs text-yellow-600 mt-1">Este contenedor puede ser validado</p>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -146,7 +296,8 @@ const QuickContainerQuery = () => {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </OperatorLayout>
   );
 };
 

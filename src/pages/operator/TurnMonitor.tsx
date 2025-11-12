@@ -3,11 +3,51 @@ import { Monitor, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { tickets } from "@/data/mocks";
+import OperatorLayout from "@/components/OperatorLayout";
+import { apiFetch } from "@/lib/api";
+
+interface Ticket {
+  id: number;
+  estado: string;
+  fecha_hora_entrada: string;
+  fecha_hora_salida: string | null;
+  contenedor_info: {
+    codigo_barras: string;
+    tipo: string;
+  };
+  ubicacion_info: {
+    zona_nombre: string;
+    fila: number;
+    columna: number;
+    nivel: number;
+  };
+}
 
 const TurnMonitor = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [monitorTickets, setMonitorTickets] = useState(tickets);
+  const [monitorTickets, setMonitorTickets] = useState<Ticket[]>([]);
+  const [userName, setUserName] = useState("Operario");
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const storedName = localStorage.getItem("userName");
+    if (storedName) setUserName(storedName);
+    
+    // Cargar tickets inicialmente
+    loadTickets();
+  }, []);
+
+  const loadTickets = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch('/tickets/');
+      setMonitorTickets(data);
+    } catch (error) {
+      console.error('Error cargando tickets:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Actualizar hora cada segundo
   useEffect(() => {
@@ -18,50 +58,29 @@ const TurnMonitor = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Simular cambios de estado en tiempo real
+  // Auto-actualizar tickets cada 8 segundos
   useEffect(() => {
-    const stateChanger = setInterval(() => {
-      setMonitorTickets(prevTickets => {
-        const ticketsWithActiveStates = prevTickets.filter(t => 
-          ["Pendiente", "En Cola", "Validado", "En Proceso"].includes(t.estado)
-        );
-        
-        if (ticketsWithActiveStates.length === 0) return prevTickets;
-        
-        const randomTicket = ticketsWithActiveStates[Math.floor(Math.random() * ticketsWithActiveStates.length)];
-        
-        return prevTickets.map(t => {
-          if (t.id === randomTicket.id) {
-            const states = ["En Cola", "Validado", "En Proceso"];
-            const currentIndex = states.indexOf(t.estado);
-            const nextState = currentIndex >= 0 && currentIndex < states.length - 1 
-              ? states[currentIndex + 1] 
-              : t.estado;
-            
-            return { ...t, estado: nextState };
-          }
-          return t;
-        });
-      });
-    }, 8000); // Cambiar estado cada 8 segundos
+    const autoRefresh = setInterval(() => {
+      loadTickets();
+    }, 8000);
 
-    return () => clearInterval(stateChanger);
+    return () => clearInterval(autoRefresh);
   }, []);
 
   const handleRefresh = () => {
-    setMonitorTickets(tickets);
+    loadTickets();
   };
 
   const getStatusColor = (estado: string) => {
     const colors: Record<string, string> = {
-      "Pendiente": "bg-accent text-accent-foreground",
-      "En Cola": "bg-muted text-muted-foreground",
-      "Validado": "bg-primary text-primary-foreground",
-      "En Proceso": "bg-warning text-warning-foreground",
-      "Completado": "bg-success text-success-foreground",
-      "Retirado": "bg-success text-success-foreground"
+      "Pendiente": "bg-blue-500 text-white",
+      "En Cola": "bg-gray-500 text-white",
+      "Validado": "bg-blue-600 text-white",
+      "En Proceso": "bg-orange-500 text-white",
+      "Completado": "bg-green-600 text-white",
+      "Retirado": "bg-green-700 text-white"
     };
-    return colors[estado] || "bg-muted";
+    return colors[estado] || "bg-gray-400 text-white";
   };
 
   const activeTickets = monitorTickets.filter(t => 
@@ -69,7 +88,8 @@ const TurnMonitor = () => {
   );
 
   return (
-    <div className="space-y-6">
+    <OperatorLayout userName={userName}>
+      <div className="space-y-6">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -88,7 +108,12 @@ const TurnMonitor = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {activeTickets.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-12">
+              <Monitor className="h-16 w-16 mx-auto text-muted-foreground mb-4 animate-pulse" />
+              <p className="text-muted-foreground">Cargando tickets...</p>
+            </div>
+          ) : activeTickets.length === 0 ? (
             <div className="text-center py-12">
               <Monitor className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">
@@ -97,82 +122,96 @@ const TurnMonitor = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {activeTickets.map((ticket, index) => (
-                <div 
-                  key={ticket.id} 
-                  className="flex items-center gap-4 p-4 rounded-lg border border-border hover:bg-muted/50 transition-all duration-300"
-                >
-                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
-                    {index + 1}
+              {activeTickets.map((ticket, index) => {
+                const slotLabel = `${ticket.ubicacion_info.zona_nombre}-${String(ticket.ubicacion_info.fila).padStart(2, '0')}-${String(ticket.ubicacion_info.columna).padStart(2, '0')}`;
+                const fechaEntrada = new Date(ticket.fecha_hora_entrada);
+                
+                return (
+                  <div 
+                    key={ticket.id} 
+                    className="flex items-center gap-4 p-4 rounded-lg border border-border hover:bg-muted/50 transition-all duration-300"
+                  >
+                    <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
+                      {index + 1}
+                    </div>
+                    
+                    <div className="flex-1 grid grid-cols-1 md:grid-cols-6 gap-4 items-center">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Ticket</p>
+                        <p className="font-semibold">#{ticket.id}</p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-xs text-muted-foreground">Contenedor</p>
+                        <p className="font-mono text-sm">{ticket.contenedor_info.codigo_barras}</p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-xs text-muted-foreground">Tipo</p>
+                        <p className="font-semibold">{ticket.contenedor_info.tipo}</p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-xs text-muted-foreground">Turno</p>
+                        <p className="text-sm font-medium">
+                          {fechaEntrada.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-xs text-muted-foreground">Slot</p>
+                        <Badge variant="outline">{slotLabel}</Badge>
+                      </div>
+                      
+                      <div className="flex justify-end">
+                        <Badge className={getStatusColor(ticket.estado)}>
+                          {ticket.estado}
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-6 gap-4 items-center">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Ticket</p>
-                      <p className="font-semibold">#{ticket.id}</p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-xs text-muted-foreground">Contenedor</p>
-                      <p className="font-mono text-sm">{ticket.contenedorId}</p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-xs text-muted-foreground">Placa</p>
-                      <p className="font-semibold">{ticket.placa}</p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-xs text-muted-foreground">Turno</p>
-                      <p className="text-sm font-medium">{ticket.turno}</p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-xs text-muted-foreground">Slot</p>
-                      <Badge variant="outline">{ticket.slot}</Badge>
-                    </div>
-                    
-                    <div className="flex justify-end">
-                      <Badge className={getStatusColor(ticket.estado)}>
-                        {ticket.estado}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Estado de slots */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Estadísticas de tickets */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-accent">{monitorTickets.filter(t => t.estado === "En Cola").length}</p>
+            <p className="text-2xl font-bold text-blue-500">{monitorTickets.filter(t => t.estado === "Pendiente").length}</p>
+            <p className="text-sm text-muted-foreground">Pendientes</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-gray-500">{monitorTickets.filter(t => t.estado === "En Cola").length}</p>
             <p className="text-sm text-muted-foreground">En Cola</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-primary">{monitorTickets.filter(t => t.estado === "Validado").length}</p>
+            <p className="text-2xl font-bold text-blue-600">{monitorTickets.filter(t => t.estado === "Validado").length}</p>
             <p className="text-sm text-muted-foreground">Validados</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-warning">{monitorTickets.filter(t => t.estado === "En Proceso").length}</p>
+            <p className="text-2xl font-bold text-orange-500">{monitorTickets.filter(t => t.estado === "En Proceso").length}</p>
             <p className="text-sm text-muted-foreground">En Proceso</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-success">{monitorTickets.filter(t => t.estado === "Completado").length}</p>
+            <p className="text-2xl font-bold text-green-600">{monitorTickets.filter(t => t.estado === "Completado").length}</p>
             <p className="text-sm text-muted-foreground">Completados</p>
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </OperatorLayout>
   );
 };
 

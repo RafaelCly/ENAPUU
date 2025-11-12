@@ -18,11 +18,12 @@ import { tickets, users } from "@/data/mocks";
 const OperatorPanel = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const [userName, setUserName] = useState<string>("Operario");
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
     const storedRole = localStorage.getItem("userRole");
+    const storedName = localStorage.getItem("userName");
     
     if (!storedUserId || storedRole !== "OPERARIO") {
       navigate("/");
@@ -30,11 +31,12 @@ const OperatorPanel = () => {
     }
     
     setUserId(storedUserId);
-    const foundUser = users.find(u => u.id === parseInt(storedUserId));
-    setUser(foundUser);
+    if (storedName) {
+      setUserName(storedName);
+    }
   }, [navigate]);
 
-  if (!user) return null;
+  if (!userId) return null;
 
   const pendingTickets = tickets.filter(t => t.estado === "Pendiente").length;
   const inProcessTickets = tickets.filter(t => t.estado === "En Proceso").length;
@@ -43,7 +45,7 @@ const OperatorPanel = () => {
 
   const sidebarItems = [
     { name: "Panel de Operaciones", path: "/operator/panel", icon: LayoutDashboard },
-    { name: "Validar", path: "/operator/validate", icon: CheckCircle2 },
+    { name: "Validar Contenedor", path: "/operator/scan", icon: CheckCircle2 },
     { name: "Ingreso", path: "/operator/entry", icon: LogIn },
     { name: "Salida", path: "/operator/exit", icon: LogOut },
     { name: "Monitor", path: "/operator/monitor", icon: Monitor },
@@ -83,7 +85,7 @@ const OperatorPanel = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar userRole="OPERARIO" userName={user.name} />
+      <Navbar userRole="OPERARIO" userName={userName} />
       
       <div className="flex">
         <Sidebar items={sidebarItems} />
