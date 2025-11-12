@@ -43,6 +43,10 @@ if 'RAILWAY_STATIC_URL' in os.environ:
 if 'RAILWAY_PUBLIC_DOMAIN' in os.environ:
     ALLOWED_HOSTS.append(os.environ.get('RAILWAY_PUBLIC_DOMAIN'))
 
+# Agregar dominio de Render automáticamente si existe
+if 'RENDER' in os.environ:
+    ALLOWED_HOSTS.append(os.environ.get('RENDER_EXTERNAL_HOSTNAME'))
+
 
 # Application definition
 
