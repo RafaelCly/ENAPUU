@@ -43,7 +43,7 @@ DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1
 
 # Database Configuration
-DB_NAME=enapu_db
+DB_NAME=ENAPU
 DB_USER=postgres
 DB_PASSWORD=TU_CONTRASEÑA_POSTGRESQL
 DB_HOST=localhost

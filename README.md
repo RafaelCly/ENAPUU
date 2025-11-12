@@ -1,16 +1,27 @@
-# Sistema de Gestión de Tickets ENAPU
+# 🚢 Sistema de Gestión Portuaria ENAPU
 
-Sistema completo de gestión portuaria con frontend en React + Vite + Tailwind CSS y datos simulados (mock data).
+![Estado](https://img.shields.io/badge/Estado-En%20Desarrollo-yellow)
+![Versión](https://img.shields.io/badge/Versión-1.0.0-blue)
+![Licencia](https://img.shields.io/badge/Licencia-MIT-green)
 
-## 🚀 Tecnologías
+Sistema integral de gestión portuaria para el control de contenedores, tickets, ubicaciones y operaciones portuarias con backend Django + API REST y frontend React + TypeScript.
 
-- **React 18** - Biblioteca de UI
-- **Vite** - Build tool y dev server
+## �️ Tecnologías
+
+### Backend
+- **Django 5.2.8** - Framework web Python
+- **Django REST Framework** - API REST
+- **PostgreSQL** - Base de datos
+- **django-cors-headers** - CORS
+- **django-environ** - Gestión de variables de entorno
+
+### Frontend
+- **React 18** - Librería UI
 - **TypeScript** - Tipado estático
-- **Tailwind CSS** - Framework de estilos
+- **Vite** - Build tool
+- **Tailwind CSS** - Estilos
 - **shadcn/ui** - Componentes UI
-- **React Router** - Navegación
-- **Lucide React** - Iconos
+- **React Router** - Enrutamiento
 
 ## 📋 Características
 
@@ -39,33 +50,48 @@ Sistema completo de gestión portuaria con frontend en React + Vite + Tailwind C
 - Reportes y analítica
 - Monitor de logs del sistema
 
-## 🛠️ Instalación y Uso
+## � Requisitos
 
-### Requisitos Previos
-- Node.js 18+ y npm
+- **Node.js** v18 o superior
+- **Python** v3.10 o superior
+- **PostgreSQL** v14 o superior
+- **Git**
 
-### Pasos de Instalación
+## 🚀 Instalación Rápida
 
-1. **Clonar o descargar el proyecto**
+### Para Colaboradores del Proyecto
 
-2. **Instalar dependencias:**
+⚠️ **IMPORTANTE:** Lee primero **[INSTRUCCIONES_COLABORADORES.md](./INSTRUCCIONES_COLABORADORES.md)** para guía completa paso a paso.
+
+### Resumen de Instalación
+
 ```bash
+# 1. Clonar repositorio
+git clone https://github.com/RafaelCly/ENAPUU.git
+cd ENAPUU
+
+# 2. Configurar Backend
+cd backend
+python -m venv venv
+.\venv\Scripts\Activate.ps1  # Windows PowerShell
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py create_initial_data
+python manage.py runserver
+
+# 3. Configurar Frontend (en otra terminal)
+cd ..
 npm install
-```
-
-3. **Iniciar servidor de desarrollo:**
-```bash
 npm run dev
 ```
 
-El proyecto se abrirá en `http://localhost:8080`
+### Usuarios de Prueba
 
-4. **Build para producción:**
-```bash
-npm run build
-```
-
-Los archivos compilados estarán en la carpeta `dist/`
+| Rol | Email | Password |
+|-----|-------|----------|
+| Administrador | admin@enapu.com | admin123 |
+| Operario | operario@enapu.com | operario123 |
+| Cliente | cliente@empresa.com | cliente123 |
 
 ## 🎯 Uso del Sistema
 
@@ -119,17 +145,40 @@ El proyecto utiliza un sistema de diseño institucional basado en:
 - **Componentes con variantes**
 - **Responsive** para desktop, tablet y mobile
 
-## ⚠️ Notas Importantes
+## 📚 Documentación
 
-1. **Sin Backend Real:** Todos los datos están en memoria (localStorage para sesión)
-2. **Solo Lectura para Admin/Operario:** Los puertos/slots solo pueden visualizarse, no editarse
-3. **Mock Data:** Las operaciones simulan cambios pero no persisten
-4. **Simulación de Tiempo Real:** El monitor de turnos actualiza estados cada 8 segundos
+- **[INSTRUCCIONES_COLABORADORES.md](./INSTRUCCIONES_COLABORADORES.md)** - Guía completa de configuración
+- **[GUIA_GIT.md](./GUIA_GIT.md)** - Guía de Git para el equipo
+- **[backend/README_BACKEND.md](./backend/README_BACKEND.md)** - Documentación del API
 
-## 📝 Desarrollado con Lovable
+## 🤝 Contribuir
 
-Este proyecto fue generado completamente con **Lovable**, plataforma de desarrollo con IA.
+1. Lee **[GUIA_GIT.md](./GUIA_GIT.md)** antes de empezar
+2. Crea una rama: `git checkout -b feature/mi-feature`
+3. Commit: `git commit -m 'feat: Agregar nueva funcionalidad'`
+4. Push: `git push origin feature/mi-feature`
+5. Abre un Pull Request
+
+### Convenciones de Commits
+
+```
+feat:     Nueva funcionalidad
+fix:      Corrección de bug
+docs:     Cambios en documentación
+refactor: Refactorización de código
+```
+
+## � Licencia
+
+Este proyecto está bajo la Licencia MIT.
+
+## 👨‍💻 Autor
+
+**Rafael Cly**
+- GitHub: [@RafaelCly](https://github.com/RafaelCly)
+- Repositorio: [ENAPUU](https://github.com/RafaelCly/ENAPUU)
 
 ---
 
-**© 2024 ENAPU - Sistema de Gestión de Tickets Portuarios**
+**Última actualización:** 11 de noviembre de 2025
+**Versión:** 1.0.0
