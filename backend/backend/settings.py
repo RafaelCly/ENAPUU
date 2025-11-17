@@ -35,7 +35,17 @@ SECRET_KEY = env('SECRET_KEY', default='django-insecure-2#o3bgaqo^e#xj8@_p$2%!@1
 DEBUG = env.bool('DEBUG', default=True)
 
 # Hosts (comma-separated in .env, e.g. ALLOWED_HOSTS=example.com,localhost)
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
+
+# Agregar dominio de Railway automáticamente si existe
+if 'RAILWAY_STATIC_URL' in os.environ:
+    ALLOWED_HOSTS.append(os.environ.get('RAILWAY_STATIC_URL'))
+if 'RAILWAY_PUBLIC_DOMAIN' in os.environ:
+    ALLOWED_HOSTS.append(os.environ.get('RAILWAY_PUBLIC_DOMAIN'))
+
+# Agregar dominio de Render automáticamente si existe
+if 'RENDER' in os.environ:
+    ALLOWED_HOSTS.append(os.environ.get('RENDER_EXTERNAL_HOSTNAME'))
 
 
 # Application definition
@@ -57,6 +67,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Para servir archivos estáticos
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -90,13 +101,20 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 # Database configuration
 # Priority:
-# 1. DATABASE_URL (single URL)
+# 1. DATABASE_URL (single URL) - Railway provee esto automáticamente
 # 2. Individual env vars: DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
 # 3. Fallback to local SQLite
+import dj_database_url
+
 DATABASE_URL = env('DATABASE_URL', default=None)
 if DATABASE_URL:
+    # Railway o Heroku proveen DATABASE_URL
     DATABASES = {
-        'default': env.db()
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
 elif env('DB_NAME', default=''):
     # If DB_NAME is set, assume PostgreSQL with individual env vars
@@ -151,7 +169,16 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = []
+
+# WhiteNoise para servir archivos estáticos en producción
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -177,8 +204,26 @@ CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
     'http://127.0.0.1:8081',
 ])
 
+# CSRF Trusted Origins para producción (necesario para Vercel/Render)
+CSRF_TRUSTED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
+    'http://localhost:5173',
+    'http://localhost:8080',
+])
+
 # For convenience in development when DEBUG=True allow all origins (but prefer explicit list)
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
     CORS_ALLOW_CREDENTIALS = True
+
+# Security settings para producción
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    SECURE_HSTS_SECONDS = 31536000  # 1 año
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
 
