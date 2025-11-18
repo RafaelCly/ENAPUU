@@ -99,7 +99,7 @@ const DataTable = ({
                     <TableCell key={column.key}>
                       {column.render 
                         ? column.render(row[column.key], row)
-                        : row[column.key]
+                        : String(row[column.key] ?? '')
                       }
                     </TableCell>
                   ))}
