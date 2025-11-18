@@ -15,12 +15,12 @@ import { Badge } from "@/components/ui/badge";
 interface Column {
   key: string;
   label: string;
-  render?: (value: any, row: any) => React.ReactNode;
+  render?: (value: unknown, row: Record<string, unknown>) => React.ReactNode;
 }
 
 interface DataTableProps {
   columns: Column[];
-  data: any[];
+  data: Record<string, unknown>[];
   searchable?: boolean;
   searchKeys?: string[];
   itemsPerPage?: number;

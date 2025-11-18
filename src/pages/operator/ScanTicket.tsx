@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import OperatorLayout from '../../components/OperatorLayout';
 import { apiFetch } from '../../lib/api';
 import { Scan, Package, Calendar, MapPin, User, CheckCircle, X } from 'lucide-react';
@@ -54,7 +54,7 @@ const ScanTicket: React.FC = () => {
       setSlots([]);
       setSelectedSlot('');
     }
-  }, [selectedZona]);
+  }, [selectedZona, loadSlotsByZona]);
 
   const loadZonas = async () => {
     try {
@@ -65,7 +65,7 @@ const ScanTicket: React.FC = () => {
     }
   };
 
-  const loadSlotsByZona = async (zonaId: number) => {
+  const loadSlotsByZona = useCallback(async (zonaId: number) => {
     try {
       const slotsData = await apiFetch('/ubicaciones-slot/');
       const slotsDisponibles = slotsData.filter(
@@ -82,7 +82,7 @@ const ScanTicket: React.FC = () => {
     } catch (error) {
       console.error('Error cargando slots:', error);
     }
-  };
+  }, [zonas]);
 
   const handleScan = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,7 +115,7 @@ const ScanTicket: React.FC = () => {
 
       // Verificar que el contenedor no tenga ticket ya creado
       const tickets = await apiFetch('/tickets/');
-      const ticketExistente = tickets.find((t: any) => t.id_contenedor === contenedor.id);
+      const ticketExistente = tickets.find((t: Record<string, unknown>) => t.id_contenedor === contenedor.id);
       
       if (ticketExistente) {
         setError(`❌ Este contenedor ya fue procesado. Ticket #${ticketExistente.id} creado anteriormente (Estado: ${ticketExistente.estado}).`);
@@ -134,9 +134,10 @@ const ScanTicket: React.FC = () => {
       }
 
       setContenedorInfo(contenedor);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error buscando contenedor:', error);
-      setError(`Error al buscar contenedor: ${error.message || 'Error desconocido'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      setError(`Error al buscar contenedor: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -152,7 +153,7 @@ const ScanTicket: React.FC = () => {
     try {
       // Buscar el cliente asociado a la cita
       const citas = await apiFetch('/citas-recojo/');
-      const cita = citas.find((c: any) => 
+      const cita = citas.find((c: Record<string, unknown>) => 
         c.fecha_envio === contenedorInfo.cita_info?.fecha_envio &&
         c.fecha_recojo === contenedorInfo.cita_info?.fecha_recojo
       );
@@ -198,9 +199,10 @@ const ScanTicket: React.FC = () => {
       setSelectedZona('');
       setSelectedSlot('');
       setError('');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creando ticket:', error);
-      alert(`Error: ${error.message || 'Error al crear el ticket'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Error al crear el ticket';
+      alert(`Error: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

@@ -12,7 +12,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [targetPath, setTargetPath] = useState<string>("/");
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<Array<{id: number; email: string; nombre: string; id_rol: number; password?: string}>>([]);
   const [rolesMap, setRolesMap] = useState<Record<number,string>>({});
 
   const roles = [
@@ -69,7 +69,7 @@ const Login = () => {
         ]);
         if (!mounted) return;
         const map: Record<number,string> = {};
-        rolesResp.forEach((r: any) => { map[r.id] = r.rol; });
+        rolesResp.forEach((r: {id: number; rol: string}) => { map[r.id] = r.rol; });
         setRolesMap(map);
         setUsers(usersResp);
       } catch (err) {
