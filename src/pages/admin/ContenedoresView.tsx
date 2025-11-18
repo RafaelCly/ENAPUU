@@ -4,10 +4,28 @@ import AdminLayout from '@/components/AdminLayout';
 import DataTable from '@/components/DataTable';
 import { apiFetch } from '@/lib/api';
 
+interface Contenedor {
+  id: number;
+  codigo_barras: string;
+  numero_contenedor: string;
+  dimensiones: string;
+  tipo: string;
+  peso: number;
+  estado: string;
+  [key: string]: unknown;
+}
+
+interface Buque {
+  id: number;
+  nombre: string;
+  codigo_omi: string;
+  [key: string]: unknown;
+}
+
 const ContenedoresView: React.FC = () => {
   const navigate = useNavigate();
-  const [data, setData] = useState<any[]>([]);
-  const [buques, setBuques] = useState<any[]>([]);
+  const [data, setData] = useState<Contenedor[]>([]);
+  const [buques, setBuques] = useState<Buque[]>([]);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     codigo_barras: '',
@@ -52,11 +70,9 @@ const ContenedoresView: React.FC = () => {
     if (!form.numero_contenedor || !form.tipo || !form.peso) {
       alert('Por favor complete todos los campos obligatorios');
       return;
-    }
-
-    setLoading(true);
+    }    setLoading(true);
     try {
-      const payload: any = {
+      const payload: Partial<Contenedor> & {id_buque: number} = {
         codigo_barras: form.codigo_barras,
         numero_contenedor: form.numero_contenedor,
         dimensiones: form.dimensiones,
@@ -77,14 +93,13 @@ const ContenedoresView: React.FC = () => {
           body: JSON.stringify(payload),
         });
         alert('Contenedor creado exitosamente');
-      }
-
-      await loadData();
+      }      await loadData();
       setForm({ codigo_barras: '', numero_contenedor: '', dimensiones: '20x8x8', tipo: '20ft', peso: '', id_buque: '' });
       setEditingId(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error guardando contenedor:', err);
-      alert(`Error: ${err.message || 'Error desconocido'}`);
+      const error = err as Error;
+      alert(`Error: ${error.message || 'Error desconocido'}`);
     } finally {
       setLoading(false);
     }
@@ -104,8 +119,7 @@ const ContenedoresView: React.FC = () => {
   };
 
   const userName = localStorage.getItem('userName') || 'Admin';
-
-  const columns: any[] = [
+  const columns: Array<{key: string; label: string; render?: (value: unknown, row: Contenedor) => React.ReactNode}> = [
     { key: 'id', label: 'ID' },
     { key: 'codigo_barras', label: 'Código Barras' },
     { key: 'numero_contenedor', label: 'Número' },
@@ -237,14 +251,12 @@ const ContenedoresView: React.FC = () => {
                 )}
               </div>
             </form>
-          </div>
-
-          <DataTable
+          </div>          <DataTable
             columns={columns.concat([
               {
                 key: 'actions',
                 label: 'Acciones',
-                render: (_: any, row: any) => (
+                render: (_: unknown, row: Contenedor) => (
                   <div className="flex gap-2">
                     <button
                       className="px-2 py-1 bg-amber-500 text-white rounded"

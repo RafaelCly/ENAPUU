@@ -35,11 +35,11 @@ const AdminDashboard = () => {
       
       setStats({
         totalTickets: tickets.length,
-        activeTickets: tickets.filter((t: any) => 
-          ["Pendiente", "En Proceso", "Validado", "En Cola"].includes(t.estado)
+        activeTickets: tickets.filter((t: Record<string, unknown>) => 
+          ["Pendiente", "En Proceso", "Validado", "En Cola"].includes(t.estado as string)
         ).length,
         totalUsers: usuarios.length,
-        availableSlots: slots.filter((s: any) => s.estado.toLowerCase() === 'disponible').length
+        availableSlots: slots.filter((s: Record<string, unknown>) => (s.estado as string).toLowerCase() === 'disponible').length
       });
     } catch (err) {
       console.error('Error cargando estadísticas:', err);

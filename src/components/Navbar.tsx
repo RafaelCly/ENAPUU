@@ -109,7 +109,9 @@ const Navbar = ({ userRole, userName, notifications = 0 }: NavbarProps) => {
               onClick={() => {
                 const next = !mobileMenuOpen;
                 setMobileMenuOpen(next);
-                try { localStorage.setItem('mobileMenuOpen', next ? '1' : '0'); } catch {}
+                try { localStorage.setItem('mobileMenuOpen', next ? '1' : '0'); } catch (error) {
+                  console.error('Failed to save mobile menu state:', error);
+                }
               }}
               className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-light"
             >

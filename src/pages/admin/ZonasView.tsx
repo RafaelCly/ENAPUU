@@ -4,9 +4,17 @@ import AdminLayout from '@/components/AdminLayout';
 import DataTable from '@/components/DataTable';
 import { apiFetch } from '@/lib/api';
 
+interface Zona {
+  id: number;
+  nombre: string;
+  capacidad: number;
+  estado: string;
+  [key: string]: unknown;
+}
+
 const ZonasView: React.FC = () => {
   const navigate = useNavigate();
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<Zona[]>([]);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     nombre: '',
@@ -70,9 +78,10 @@ const ZonasView: React.FC = () => {
       await loadData();
       setForm({ nombre: '', capacidad: '', estado: 'activa' });
       setEditingId(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error guardando zona:', err);
-      alert(`Error: ${err.message || 'Error desconocido'}`);
+      const error = err as Error;
+      alert(`Error: ${error.message || 'Error desconocido'}`);
     } finally {
       setLoading(false);
     }
@@ -93,7 +102,13 @@ const ZonasView: React.FC = () => {
 
   const userName = localStorage.getItem('userName') || 'Admin';
 
-  const columns: any[] = [
+  interface Column {
+    key: string;
+    label: string;
+    render?: (value: unknown, row?: unknown) => React.ReactNode;
+  }
+
+  const columns: Column[] = [
     { key: 'id', label: 'ID' },
     { key: 'nombre', label: 'Nombre' },
     { key: 'capacidad', label: 'Capacidad' },
@@ -185,7 +200,7 @@ const ZonasView: React.FC = () => {
               {
                 key: 'actions',
                 label: 'Acciones',
-                render: (_: any, row: any) => (
+                render: (_: unknown, row: Zona) => (
                   <div className="flex gap-2">
                     <button
                       className="px-2 py-1 bg-amber-500 text-white rounded"
