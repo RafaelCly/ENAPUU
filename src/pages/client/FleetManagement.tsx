@@ -5,17 +5,20 @@ import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import DataTable from "@/components/DataTable";
 import { Badge } from "@/components/ui/badge";
-import { fleet, users } from "@/data/mocks";
+import { api } from "@/lib/api";
 
 
 const FleetManagement = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [userContainers, setUserContainers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
     const storedRole = localStorage.getItem("userRole");
+    const storedName = localStorage.getItem("userName");
     
     if (!storedUserId || storedRole !== "CLIENTE") {
       navigate("/");
@@ -23,30 +26,89 @@ const FleetManagement = () => {
     }
     
     setUserId(storedUserId);
-    const foundUser = users.find(u => u.id === parseInt(storedUserId));
-    setUser(foundUser);
+    setUser({
+      id: parseInt(storedUserId),
+      name: storedName || 'Cliente'
+    });
   }, [navigate]);
+
+  // Cargar contenedores del usuario (a través de tickets)
+  useEffect(() => {
+    const loadUserContainers = async () => {
+      if (!user?.id) return;
+      
+      try {
+        setLoading(true);
+        const tickets = await api.tickets.byUsuario(user.id);
+        
+        // Extraer contenedores únicos de los tickets
+        const containersMap = new Map();
+        tickets?.forEach((ticket: any) => {
+          if (ticket.contenedor_info && !containersMap.has(ticket.contenedor_info.codigo_barras)) {
+            containersMap.set(ticket.contenedor_info.codigo_barras, {
+              ...ticket.contenedor_info,
+              ticket_estado: ticket.estado,
+              fecha_entrada: ticket.fecha_hora_entrada,
+              ubicacion: ticket.ubicacion_info
+            });
+          }
+        });
+        
+        const containers = Array.from(containersMap.values());
+        console.log('Contenedores del cliente cargados:', containers);
+        setUserContainers(containers);
+      } catch (error) {
+        console.error('Error cargando contenedores:', error);
+        setUserContainers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserContainers();
+  }, [user]);
 
   if (!user) return null;
 
-  const userFleet = fleet.filter(f => f.clienteId === user.id);
-
   const columns = [
-    { key: "id", label: "ID" },
     { 
-      key: "placa", 
-      label: "Placa",
+      key: "codigo_barras", 
+      label: "Código",
+      render: (value: string) => <span className="font-mono text-sm">{value}</span>
+    },
+    { 
+      key: "numero_contenedor", 
+      label: "Número",
       render: (value: string) => <span className="font-mono font-semibold">{value}</span>
     },
-    { key: "conductor", label: "Conductor" },
-    { key: "tipo", label: "Tipo de Vehículo" },
+    { key: "tipo", label: "Tipo" },
+    { key: "dimensiones", label: "Dimensiones" },
     { 
-      key: "estado", 
+      key: "peso", 
+      label: "Peso (kg)",
+      render: (value: number) => value?.toLocaleString() || 'N/A'
+    },
+    { 
+      key: "ticket_estado", 
       label: "Estado",
       render: (value: string) => {
-        const variant = value === "Activo" ? "bg-success text-success-foreground" : "bg-warning text-warning-foreground";
-        return <Badge className={variant}>{value}</Badge>;
+        const variants: Record<string, string> = {
+          "pendiente": "bg-blue-100 text-blue-800",
+          "en_proceso": "bg-yellow-100 text-yellow-800",
+          "en_espera": "bg-gray-100 text-gray-800",
+          "completado": "bg-green-100 text-green-800"
+        };
+        return (
+          <Badge className={variants[value?.toLowerCase()] || "bg-gray-100 text-gray-600"}>
+            {value?.replace('_', ' ').toUpperCase() || 'N/A'}
+          </Badge>
+        );
       }
+    },
+    { 
+      key: "ubicacion", 
+      label: "Ubicación",
+      render: (value: any) => value ? `Zona ${value.zona_nombre}` : 'Sin asignar'
     },
   ];
 
@@ -69,15 +131,21 @@ const FleetManagement = () => {
         <main className="flex-1 p-6 lg:p-8">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-foreground mb-2">Gestión de Flota</h1>
-            <p className="text-muted-foreground">Administra tus vehículos y conductores registrados</p>
+            <p className="text-muted-foreground">Administra tus contenedores registrados</p>
           </div>
 
-          <DataTable
-            columns={columns}
-            data={userFleet}
-            searchKeys={["placa", "conductor", "tipo"]}
-            itemsPerPage={10}
-          />
+          {loading ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Cargando contenedores...</p>
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={userContainers}
+              searchKeys={["codigo_barras", "numero_contenedor", "tipo"]}
+              itemsPerPage={10}
+            />
+          )}
         </main>
       </div>
     </div>

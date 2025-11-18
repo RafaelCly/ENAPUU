@@ -70,7 +70,7 @@ const Navbar = ({ userRole, userName, notifications = 0 }: NavbarProps) => {
             <div className="flex items-center gap-2 text-primary-foreground">
               <User className="h-4 w-4" />
               <span
-                className="text-sm font-medium cursor-pointer"
+                className="text-sm cursor-pointer"
                 onClick={() => navigate("/client/profile")}
               >
                 {userName}
@@ -125,7 +125,7 @@ const Navbar = ({ userRole, userName, notifications = 0 }: NavbarProps) => {
           <div className="space-y-1 px-4 pb-3 pt-2">
             <div className="flex items-center gap-2 py-2 text-primary-foreground">
               <User className="h-4 w-4" />
-              <span className="text-sm font-medium">{userName}</span>
+              <span className="text-sm">{userName}</span>
             </div>
             <div className="py-2">
               <Badge variant={getRoleBadgeVariant(userRole)}>

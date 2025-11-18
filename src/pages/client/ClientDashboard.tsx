@@ -6,12 +6,14 @@ import Sidebar from "@/components/Sidebar";
 import CardStat from "@/components/CardStat";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { tickets, notifications, users } from "@/data/mocks";
+import { api } from "@/lib/api";
 
 const ClientDashboard = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [userTickets, setUserTickets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
@@ -33,12 +35,41 @@ const ClientDashboard = () => {
     });
   }, [navigate]);
 
+  // Cargar tickets del usuario
+  useEffect(() => {
+    const loadUserTickets = async () => {
+      if (!user?.id) {
+        console.log('No hay usuario o ID:', user);
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        console.log('Cargando tickets para usuario ID:', user.id);
+        const tickets = await api.tickets.byUsuario(user.id);
+        console.log('Tickets cargados:', tickets);
+        console.log('Número de tickets:', tickets?.length || 0);
+        setUserTickets(tickets || []);
+      } catch (error) {
+        console.error('Error cargando tickets:', error);
+        setUserTickets([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserTickets();
+  }, [user]);
+
   if (!user) return null;
 
-  const userTickets = tickets.filter(t => t.clienteId === user.id);
-  const activeTickets = userTickets.filter(t => ["Pendiente", "En Proceso", "Validado", "En Cola"].includes(t.estado));
-  const userNotifications = notifications.filter(n => n.userId === user.id && !n.leido);
-  const nextTurno = userTickets.find(t => t.estado === "Pendiente");
+  const activeTickets = userTickets.filter(t => 
+    ["pendiente", "en_proceso", "en_espera"].includes(t.estado?.toLowerCase())
+  );
+  const completedTickets = userTickets.filter(t => 
+    t.estado?.toLowerCase() === "completado"
+  );
+  const nextTurno = userTickets.find(t => t.estado?.toLowerCase() === "pendiente");
 
   const sidebarItems = [
     { name: "Dashboard", path: "/client/dashboard", icon: LayoutGrid },
@@ -75,7 +106,7 @@ const ClientDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar userRole="CLIENTE" userName={user.name} notifications={userNotifications.length} />
+      <Navbar userRole="CLIENTE" userName={user.name} notifications={0} />
       
       <div className="flex">
         <Sidebar items={sidebarItems} />
@@ -95,28 +126,28 @@ const ClientDashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <CardStat
               title="Tickets Activos"
-              value={activeTickets.length}
+              value={loading ? "..." : activeTickets.length}
               icon={LayoutGrid}
               trend="+2 este mes"
               variant="default"
             />
             <CardStat
               title="Próximo Turno"
-              value={nextTurno ? nextTurno.turno.split("-")[0] : "--:--"}
+              value={loading ? "..." : (nextTurno ? "Pendiente" : "--:--")}
               icon={Bell}
-              trend={nextTurno ? `Slot ${nextTurno.slot}` : "Sin turnos"}
+              trend={nextTurno ? `Ticket #${nextTurno.id}` : "Sin turnos"}
               variant="warning"
             />
             <CardStat
               title="Completados"
-              value={userTickets.filter(t => t.estado === "Completado" || t.estado === "Retirado").length}
+              value={loading ? "..." : completedTickets.length}
               icon={History}
               trend="Esta semana"
               variant="success"
             />
             <CardStat
               title="Notificaciones"
-              value={userNotifications.length}
+              value="0"
               icon={Bell}
               trend="Sin leer"
               variant="destructive"
@@ -157,48 +188,69 @@ const ClientDashboard = () => {
               </Button>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {userTickets.slice(0, 4).map((ticket) => (
-                <Card key={ticket.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-base">Ticket #{ticket.id}</CardTitle>
-                        <CardDescription className="text-sm mt-1">{ticket.contenedorId}</CardDescription>
-                      </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        ticket.estado === "Completado" || ticket.estado === "Retirado" ? "bg-success text-success-foreground" :
-                        ticket.estado === "En Proceso" ? "bg-warning text-warning-foreground" :
-                        ticket.estado === "Pendiente" ? "bg-accent text-accent-foreground" :
-                        "bg-muted text-muted-foreground"
-                      }`}>
-                        {ticket.estado}
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Transportista:</span>
-                        <span className="font-medium">{ticket.transportista}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Placa:</span>
-                        <span className="font-medium">{ticket.placa}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Turno:</span>
-                        <span className="font-medium">{ticket.turno}</span>
-                      </div>
-                      {ticket.slot && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Slot:</span>
-                          <span className="font-medium">{ticket.slot}</span>
+              {loading ? (
+                <div className="col-span-full text-center text-muted-foreground">
+                  Cargando tickets...
+                </div>
+              ) : userTickets.length === 0 ? (
+                <div className="col-span-full text-center text-muted-foreground">
+                  No hay tickets disponibles
+                </div>
+              ) : (
+                userTickets.slice(0, 4).map((ticket) => (
+                  <Card key={ticket.id}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="text-base">Ticket #{ticket.id}</CardTitle>
+                          <CardDescription className="text-sm mt-1">
+                            {ticket.contenedor?.codigo_barras || 'Sin contenedor'}
+                          </CardDescription>
                         </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          ticket.estado === "completado" ? "bg-green-100 text-green-800" :
+                          ticket.estado === "en_proceso" ? "bg-yellow-100 text-yellow-800" :
+                          ticket.estado === "pendiente" ? "bg-blue-100 text-blue-800" :
+                          ticket.estado === "en_espera" ? "bg-gray-100 text-gray-800" :
+                          "bg-gray-100 text-gray-600"
+                        }`}>
+                          {ticket.estado?.replace('_', ' ').toUpperCase()}
+                        </span>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Contenedor:</span>
+                          <span className="font-medium">
+                            {ticket.contenedor?.numero_contenedor || 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Tipo:</span>
+                          <span className="font-medium">
+                            {ticket.contenedor?.tipo || 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Entrada:</span>
+                          <span className="font-medium">
+                            {ticket.fecha_hora_entrada ? 
+                              new Date(ticket.fecha_hora_entrada).toLocaleDateString() : 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Ubicación:</span>
+                          <span className="font-medium">
+                            {ticket.ubicacion ? 
+                              `Zona ${ticket.ubicacion.zona?.nombre || 'N/A'}` : 'Sin asignar'}
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
           </div>
         </main>

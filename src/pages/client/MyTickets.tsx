@@ -5,16 +5,19 @@ import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import DataTable from "@/components/DataTable";
 import { Badge } from "@/components/ui/badge";
-import { tickets, users } from "@/data/mocks";
+import { api } from "@/lib/api";
 
 const MyTickets = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [userTickets, setUserTickets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
     const storedRole = localStorage.getItem("userRole");
+    const storedName = localStorage.getItem("userName");
     
     if (!storedUserId || storedRole !== "CLIENTE") {
       navigate("/");
@@ -22,49 +25,83 @@ const MyTickets = () => {
     }
     
     setUserId(storedUserId);
-    const foundUser = users.find(u => u.id === parseInt(storedUserId));
-    setUser(foundUser);
+    setUser({
+      id: parseInt(storedUserId),
+      name: storedName || 'Cliente'
+    });
   }, [navigate]);
 
-  if (!user) return null;
+  // Cargar tickets del usuario
+  useEffect(() => {
+    const loadUserTickets = async () => {
+      if (!user?.id) return;
+      
+      try {
+        setLoading(true);
+        const tickets = await api.tickets.byUsuario(user.id);
+        console.log('Tickets cargados en MyTickets:', tickets);
+        setUserTickets(tickets || []);
+      } catch (error) {
+        console.error('Error cargando tickets:', error);
+        setUserTickets([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const userTickets = tickets.filter(t => t.clienteId === user.id);
+    loadUserTickets();
+  }, [user]);
+
+  if (!user) return null;
 
   const columns = [
     { key: "id", label: "ID" },
     { 
-      key: "contenedorId", 
+      key: "contenedor_info", 
       label: "Contenedor",
-      render: (value: string) => <span className="font-mono text-sm">{value}</span>
+      render: (value: any) => (
+        <span className="font-mono text-sm">
+          {value?.codigo_barras || value?.numero_contenedor || 'N/A'}
+        </span>
+      )
     },
-    { key: "transportista", label: "Transportista" },
-    { key: "placa", label: "Placa" },
+    { 
+      key: "contenedor_info", 
+      label: "Tipo",
+      render: (value: any) => value?.tipo || 'N/A'
+    },
+    { 
+      key: "ubicacion_info", 
+      label: "Ubicación",
+      render: (value: any) => value ? `Zona ${value.zona_nombre}` : 'Sin asignar'
+    },
     { 
       key: "estado", 
       label: "Estado",
       render: (value: string) => {
         const variants: Record<string, string> = {
-          "Pendiente": "bg-accent text-accent-foreground",
-          "En Proceso": "bg-warning text-warning-foreground",
-          "Validado": "bg-primary text-primary-foreground",
-          "Completado": "bg-success text-success-foreground",
-          "Retirado": "bg-success text-success-foreground",
-          "En Cola": "bg-muted text-muted-foreground",
-          "Cancelado": "bg-destructive text-destructive-foreground"
+          "pendiente": "bg-blue-100 text-blue-800",
+          "en_proceso": "bg-yellow-100 text-yellow-800",
+          "en_espera": "bg-gray-100 text-gray-800",
+          "completado": "bg-green-100 text-green-800",
+          "cancelado": "bg-red-100 text-red-800"
         };
         return (
-          <Badge className={variants[value] || "bg-muted"}>
-            {value}
+          <Badge className={variants[value?.toLowerCase()] || "bg-gray-100 text-gray-600"}>
+            {value?.replace('_', ' ').toUpperCase() || 'N/A'}
           </Badge>
         );
       }
     },
-    { key: "turno", label: "Turno" },
-    { key: "fecha", label: "Fecha" },
     { 
-      key: "slot", 
-      label: "Slot",
-      render: (value: string) => value ? <Badge variant="outline">{value}</Badge> : <span className="text-muted-foreground">-</span>
+      key: "fecha_hora_entrada", 
+      label: "Fecha Entrada",
+      render: (value: string) => value ? new Date(value).toLocaleDateString() : 'N/A'
+    },
+    { 
+      key: "fecha_hora_salida", 
+      label: "Fecha Salida",
+      render: (value: string) => value ? new Date(value).toLocaleDateString() : 'Pendiente'
     },
   ];
 
@@ -90,12 +127,18 @@ const MyTickets = () => {
             <p className="text-muted-foreground">Consulta y gestiona todos tus tickets</p>
           </div>
 
-          <DataTable
-            columns={columns}
-            data={userTickets}
-            searchKeys={["contenedorId", "transportista", "placa", "estado"]}
-            itemsPerPage={10}
-          />
+          {loading ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Cargando tickets...</p>
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={userTickets}
+              searchKeys={["estado"]}
+              itemsPerPage={10}
+            />
+          )}
         </main>
       </div>
     </div>

@@ -5,16 +5,19 @@ import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import DataTable from "@/components/DataTable";
 import { Badge } from "@/components/ui/badge";
-import { tickets, users } from "@/data/mocks";
+import { api } from "@/lib/api";
 
 const History = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [userTicketsHistory, setUserTicketsHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
     const storedRole = localStorage.getItem("userRole");
+    const storedName = localStorage.getItem("userName");
     
     if (!storedUserId || storedRole !== "CLIENTE") {
       navigate("/");
@@ -22,44 +25,89 @@ const History = () => {
     }
     
     setUserId(storedUserId);
-    const foundUser = users.find(u => u.id === parseInt(storedUserId));
-    setUser(foundUser);
+    setUser({
+      id: parseInt(storedUserId),
+      name: storedName || 'Cliente'
+    });
   }, [navigate]);
 
-  if (!user) return null;
+  // Cargar historial de tickets del usuario
+  useEffect(() => {
+    const loadUserTicketsHistory = async () => {
+      if (!user?.id) return;
+      
+      try {
+        setLoading(true);
+        const tickets = await api.tickets.byUsuario(user.id);
+        // Filtrar solo tickets completados o con fecha de salida
+        const historyTickets = tickets?.filter(t => 
+          t.estado?.toLowerCase() === "completado" || t.fecha_hora_salida
+        ).sort((a: any, b: any) => 
+          new Date(b.fecha_hora_salida || b.fecha_hora_entrada).getTime() - 
+          new Date(a.fecha_hora_salida || a.fecha_hora_entrada).getTime()
+        ) || [];
+        
+        console.log('Historial de tickets cargado:', historyTickets);
+        setUserTicketsHistory(historyTickets);
+      } catch (error) {
+        console.error('Error cargando historial:', error);
+        setUserTicketsHistory([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const userTicketsHistory = tickets
-    .filter(t => t.clienteId === user.id && (t.estado === "Completado" || t.estado === "Retirado" || t.estado === "Cancelado"))
-    .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+    loadUserTicketsHistory();
+  }, [user]);
+
+  if (!user) return null;
 
   const columns = [
     { key: "id", label: "ID" },
     { 
-      key: "contenedorId", 
+      key: "contenedor_info", 
       label: "Contenedor",
-      render: (value: string) => <span className="font-mono text-sm">{value}</span>
+      render: (value: any) => (
+        <span className="font-mono text-sm">
+          {value?.codigo_barras || value?.numero_contenedor || 'N/A'}
+        </span>
+      )
     },
-    { key: "transportista", label: "Transportista" },
-    { key: "placa", label: "Placa" },
-    { key: "conductor", label: "Conductor" },
+    { 
+      key: "contenedor_info", 
+      label: "Tipo",
+      render: (value: any) => value?.tipo || 'N/A'
+    },
+    { 
+      key: "ubicacion_info", 
+      label: "Ubicación",
+      render: (value: any) => value ? `Zona ${value.zona_nombre}` : 'N/A'
+    },
     { 
       key: "estado", 
       label: "Estado Final",
       render: (value: string) => {
         const variants: Record<string, string> = {
-          "Completado": "bg-success text-success-foreground",
-          "Retirado": "bg-success text-success-foreground",
-          "Cancelado": "bg-destructive text-destructive-foreground"
+          "completado": "bg-green-100 text-green-800",
+          "cancelado": "bg-red-100 text-red-800"
         };
         return (
-          <Badge className={variants[value] || "bg-muted"}>
-            {value}
+          <Badge className={variants[value?.toLowerCase()] || "bg-gray-100 text-gray-600"}>
+            {value?.replace('_', ' ').toUpperCase() || 'PROCESADO'}
           </Badge>
         );
       }
     },
-    { key: "fecha", label: "Fecha" },
-    { key: "turno", label: "Turno" },
+    { 
+      key: "fecha_hora_entrada", 
+      label: "Entrada",
+      render: (value: string) => value ? new Date(value).toLocaleDateString() : 'N/A'
+    },
+    { 
+      key: "fecha_hora_salida", 
+      label: "Salida",
+      render: (value: string) => value ? new Date(value).toLocaleDateString() : 'Completado'
+    },
   ];
 
   const sidebarItems = [
@@ -84,12 +132,18 @@ const History = () => {
             <p className="text-muted-foreground">Consulta el historial completo de tickets completados</p>
           </div>
 
-          <DataTable
-            columns={columns}
-            data={userTicketsHistory}
-            searchKeys={["contenedorId", "transportista", "placa", "conductor"]}
-            itemsPerPage={10}
-          />
+          {loading ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Cargando historial...</p>
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={userTicketsHistory}
+              searchKeys={["estado"]}
+              itemsPerPage={10}
+            />
+          )}
         </main>
       </div>
     </div>
