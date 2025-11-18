@@ -12,7 +12,7 @@ from django.contrib.auth.hashers import make_password
 
 def add_clients():
     """Agregar 5-6 clientes nuevos a la base de datos"""
-    
+   
     # Obtener rol CLIENTE
     rol_cliente = Rol.objects.filter(rol='CLIENTE').first()
     if not rol_cliente:
