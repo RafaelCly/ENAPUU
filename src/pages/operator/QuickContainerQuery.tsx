@@ -25,9 +25,15 @@ interface Contenedor {
   } | null;
 }
 
+interface ContainerInfo extends Contenedor {
+  buque_nombre?: string;
+  cita_info?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 const QuickContainerQuery = () => {
   const [containerId, setContainerId] = useState("");
-  const [containerInfo, setContainerInfo] = useState<any>(null);
+  const [containerInfo, setContainerInfo] = useState<ContainerInfo | null>(null);
   const [userName, setUserName] = useState("Operario");
   const [contenedoresPendientes, setContenedoresPendientes] = useState<Contenedor[]>([]);
   const [loading, setLoading] = useState(false);
@@ -47,7 +53,7 @@ const QuickContainerQuery = () => {
 
       // Filtrar solo contenedores con cita y sin ticket
       const pendientes = contenedores.filter((c: Contenedor) => {
-        const tieneTicket = tickets.some((t: any) => t.id_contenedor === c.id);
+        const tieneTicket = tickets.some((t: Record<string, unknown>) => t.id_contenedor === c.id);
         return c.cita_info && !tieneTicket;
       });
 
@@ -80,7 +86,7 @@ const QuickContainerQuery = () => {
 
       // Verificar si tiene ticket
       const tickets = await apiFetch('/tickets/');
-      const relatedTicket = tickets.find((t: any) => t.id_contenedor === container.id);
+      const relatedTicket = tickets.find((t: Record<string, unknown>) => t.id_contenedor === container.id);
 
       setContainerInfo({ ...container, ticket: relatedTicket });
       toast.success("Contenedor encontrado");

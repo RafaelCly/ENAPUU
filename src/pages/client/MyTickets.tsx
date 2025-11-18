@@ -7,11 +7,25 @@ import DataTable from "@/components/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 
+interface User {
+  id: number;
+  name: string;
+  [key: string]: unknown;
+}
+
+interface Ticket {
+  id: number;
+  estado: string;
+  fecha_creacion: string;
+  contenedor_info?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 const MyTickets = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
-  const [userTickets, setUserTickets] = useState<any[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [userTickets, setUserTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -59,21 +73,30 @@ const MyTickets = () => {
     { 
       key: "contenedor_info", 
       label: "Contenedor",
-      render: (value: any) => (
-        <span className="font-mono text-sm">
-          {value?.codigo_barras || value?.numero_contenedor || 'N/A'}
-        </span>
-      )
+      render: (value: unknown) => {
+        const info = value as Record<string, unknown> | undefined;
+        return (
+          <span className="font-mono text-sm">
+            {(info?.codigo_barras as string) || (info?.numero_contenedor as string) || 'N/A'}
+          </span>
+        );
+      }
     },
     { 
       key: "contenedor_info", 
       label: "Tipo",
-      render: (value: any) => value?.tipo || 'N/A'
+      render: (value: unknown) => {
+        const info = value as Record<string, unknown> | undefined;
+        return (info?.tipo as string) || 'N/A';
+      }
     },
     { 
       key: "ubicacion_info", 
       label: "Ubicación",
-      render: (value: any) => value ? `Zona ${value.zona_nombre}` : 'Sin asignar'
+      render: (value: unknown) => {
+        const info = value as Record<string, unknown> | undefined;
+        return info ? `Zona ${info.zona_nombre as string}` : 'Sin asignar';
+      }
     },
     { 
       key: "estado", 

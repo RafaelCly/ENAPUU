@@ -7,10 +7,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { users } from "@/data/mocks";
 
+interface User {
+  id: number;
+  nombre: string;
+  email: string;
+  [key: string]: unknown;
+}
+
 const Profile = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");

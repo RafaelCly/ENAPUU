@@ -5,10 +5,23 @@ import DataTable from "@/components/DataTable";
 import { Badge } from "@/components/ui/badge";
 import apiFetch from "@/lib/api";
 
+interface User {
+  id: number;
+  nombre: string;
+  email: string;
+  telefono?: string;
+  empresa?: string;
+  id_rol: number;
+  id_nivel_acceso: number;
+  rol_nombre?: string;
+  nivel_nombre?: string;
+  [key: string]: unknown;
+}
+
 const UsersView = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
-  const [data, setData] = useState<any[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [data, setData] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ 
     nombre: '', 
@@ -28,7 +41,7 @@ const UsersView = () => {
       navigate("/");
       return;
     }
-    setUser({ id: parseInt(storedUserId) });
+    setUser({ id: parseInt(storedUserId), nombre: '', email: '', id_rol: 0, id_nivel_acceso: 0 });
     // load users from API
     (async () => {
       setLoading(true);
@@ -49,7 +62,7 @@ const UsersView = () => {
 
   const userName = localStorage.getItem('userName') || 'Admin';
 
-  const columns: any[] = [
+  const columns: Array<{key: string; label: string; render?: (value: unknown, row: User) => React.ReactNode}> = [
     { key: "id", label: "ID" },
     { key: "nombre", label: "Nombre" },
     { key: "email", label: "Email" },
@@ -58,12 +71,12 @@ const UsersView = () => {
     { 
       key: "rol_nombre", 
       label: "Rol", 
-      render: (value: any, row: any) => row.rol_nombre || `ID: ${row.id_rol}`
+      render: (value: unknown, row: User) => row.rol_nombre || `ID: ${row.id_rol}`
     },
     { 
       key: "nivel_nombre", 
       label: "Nivel", 
-      render: (value: any, row: any) => row.nivel_nombre || `ID: ${row.id_nivel_acceso}`
+      render: (value: unknown, row: User) => row.nivel_nombre || `ID: ${row.id_nivel_acceso}`
     },
   ];
 
@@ -195,7 +208,7 @@ const UsersView = () => {
                     return;
                   }
 
-                  const payload: any = {
+                  const payload: Partial<User> & {password?: string} = {
                     nombre: form.nombre,
                     email: form.email,
                     telefono: form.telefono,
@@ -219,15 +232,16 @@ const UsersView = () => {
                   setForm({ nombre: '', email: '', password: '', telefono: '', empresa: '', id_rol: '', id_nivel_acceso: '' });
                   setEditingId(null);
                   alert(editingId ? 'Usuario actualizado exitosamente' : 'Usuario creado exitosamente');
-                } catch (err: any) {
+                } catch (err: unknown) {
                   console.error('Error al guardar usuario:', err);
                   
                   // Mensaje de error más específico
                   let errorMsg = 'Error al guardar usuario';
-                  if (err.message?.includes('email') || err.message?.includes('unique')) {
+                  const error = err as Error;
+                  if (error.message?.includes('email') || error.message?.includes('unique')) {
                     errorMsg = 'Este email ya está registrado. Por favor use otro.';
-                  } else if (err.message) {
-                    errorMsg = `Error: ${err.message}`;
+                  } else if (error.message) {
+                    errorMsg = `Error: ${error.message}`;
                   }
                   
                   alert(errorMsg);
@@ -248,7 +262,7 @@ const UsersView = () => {
             </div>
           </div>
 
-          <DataTable columns={columns.concat([{ key: 'actions', label: 'Acciones', render: (_: any, row: any) => (
+          <DataTable columns={columns.concat([{ key: 'actions', label: 'Acciones', render: (_: unknown, row: User) => (
             <div className="flex gap-2">
               <button className="px-2 py-1 bg-amber-500 text-white rounded" onClick={() => { 
                 setEditingId(row.id); 

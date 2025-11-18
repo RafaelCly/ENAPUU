@@ -13,9 +13,15 @@ interface ValidateTicketProps {
   operatorName: string;
 }
 
+interface ValidatedTicket {
+  id: number;
+  estado: string;
+  [key: string]: unknown;
+}
+
 const ValidateTicket = ({ operatorName }: ValidateTicketProps) => {
   const [qrCode, setQrCode] = useState("");
-  const [validatedTicket, setValidatedTicket] = useState<any>(null);
+  const [validatedTicket, setValidatedTicket] = useState<ValidatedTicket | null>(null);
   const [userName, setUserName] = useState("Operario");
   
   useEffect(() => {
