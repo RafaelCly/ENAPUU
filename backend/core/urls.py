@@ -1,3 +1,9 @@
+"""
+Definición de las rutas de la API REST para la aplicación 'core'.
+
+Utiliza Django REST Framework Routers para generar automáticamente 
+los endpoints de las operaciones CRUD (ViewSets) para todos los modelos.
+"""
 from django.urls import path, include
 from rest_framework import routers
 from . import views
