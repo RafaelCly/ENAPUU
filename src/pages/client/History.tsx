@@ -7,11 +7,39 @@ import DataTable from "@/components/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 
+interface User {
+  id: number;
+  name: string;
+  [key: string]: unknown;
+}
+
+interface ContenedorInfo {
+  codigo_barras?: string;
+  numero_contenedor?: string;
+  tipo?: string;
+  [key: string]: unknown;
+}
+
+interface UbicacionInfo {
+  zona_nombre?: string;
+  [key: string]: unknown;
+}
+
+interface HistoryTicket {
+  id: number;
+  contenedor_info?: ContenedorInfo;
+  ubicacion_info?: UbicacionInfo;
+  estado?: string;
+  fecha_hora_entrada?: string;
+  fecha_hora_salida?: string;
+  [key: string]: unknown;
+}
+
 const History = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
-  const [userTicketsHistory, setUserTicketsHistory] = useState<any[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [userTicketsHistory, setUserTicketsHistory] = useState<HistoryTicket[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,11 +68,11 @@ const History = () => {
         setLoading(true);
         const tickets = await api.tickets.byUsuario(user.id);
         // Filtrar solo tickets completados o con fecha de salida
-        const historyTickets = tickets?.filter(t => 
+        const historyTickets = tickets?.filter((t: HistoryTicket) => 
           t.estado?.toLowerCase() === "completado" || t.fecha_hora_salida
-        ).sort((a: any, b: any) => 
-          new Date(b.fecha_hora_salida || b.fecha_hora_entrada).getTime() - 
-          new Date(a.fecha_hora_salida || a.fecha_hora_entrada).getTime()
+        ).sort((a: HistoryTicket, b: HistoryTicket) => 
+          new Date(b.fecha_hora_salida || b.fecha_hora_entrada || 0).getTime() - 
+          new Date(a.fecha_hora_salida || a.fecha_hora_entrada || 0).getTime()
         ) || [];
         
         console.log('Historial de tickets cargado:', historyTickets);
@@ -67,21 +95,30 @@ const History = () => {
     { 
       key: "contenedor_info", 
       label: "Contenedor",
-      render: (value: any) => (
-        <span className="font-mono text-sm">
-          {value?.codigo_barras || value?.numero_contenedor || 'N/A'}
-        </span>
-      )
+      render: (value: unknown) => {
+        const info = value as ContenedorInfo | undefined;
+        return (
+          <span className="font-mono text-sm">
+            {info?.codigo_barras || info?.numero_contenedor || 'N/A'}
+          </span>
+        );
+      }
     },
     { 
       key: "contenedor_info", 
       label: "Tipo",
-      render: (value: any) => value?.tipo || 'N/A'
+      render: (value: unknown) => {
+        const info = value as ContenedorInfo | undefined;
+        return info?.tipo || 'N/A';
+      }
     },
     { 
       key: "ubicacion_info", 
       label: "Ubicación",
-      render: (value: any) => value ? `Zona ${value.zona_nombre}` : 'N/A'
+      render: (value: unknown) => {
+        const info = value as UbicacionInfo | undefined;
+        return info?.zona_nombre ? `Zona ${info.zona_nombre}` : 'N/A';
+      }
     },
     { 
       key: "estado", 

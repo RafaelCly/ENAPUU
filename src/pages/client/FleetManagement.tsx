@@ -7,12 +7,36 @@ import DataTable from "@/components/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 
+interface User {
+  id: number;
+  name: string;
+  [key: string]: unknown;
+}
+
+interface Container {
+  codigo_barras?: string;
+  numero_contenedor?: string;
+  tipo?: string;
+  ticket_estado?: string;
+  fecha_entrada?: string;
+  ubicacion?: {
+    zona_nombre?: string;
+  };
+  [key: string]: unknown;
+}
+
+interface Ticket {
+  contenedor_info?: Container;
+  estado?: string;
+  fecha_hora_entrada?: string;
+  [key: string]: unknown;
+}
 
 const FleetManagement = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
-  const [userContainers, setUserContainers] = useState<any[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [userContainers, setUserContainers] = useState<Container[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,8 +66,8 @@ const FleetManagement = () => {
         const tickets = await api.tickets.byUsuario(user.id);
         
         // Extraer contenedores únicos de los tickets
-        const containersMap = new Map();
-        tickets?.forEach((ticket: any) => {
+        const containersMap = new Map<string, Container>();
+        tickets?.forEach((ticket: Ticket) => {
           if (ticket.contenedor_info && !containersMap.has(ticket.contenedor_info.codigo_barras)) {
             containersMap.set(ticket.contenedor_info.codigo_barras, {
               ...ticket.contenedor_info,
@@ -108,7 +132,10 @@ const FleetManagement = () => {
     { 
       key: "ubicacion", 
       label: "Ubicación",
-      render: (value: any) => value ? `Zona ${value.zona_nombre}` : 'Sin asignar'
+      render: (value: unknown) => {
+        const ubicacion = value as { zona_nombre?: string } | undefined;
+        return ubicacion?.zona_nombre ? `Zona ${ubicacion.zona_nombre}` : 'Sin asignar';
+      }
     },
   ];
 
