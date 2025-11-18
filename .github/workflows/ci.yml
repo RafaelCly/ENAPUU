@@ -1,0 +1,57 @@
+# Nombre de tu pipeline de Integración Continua (CI)
+name: CI del Frontend (React + TS)
+
+# Disparadores: Cuándo debe ejecutarse este pipeline
+on:
+  # 1. Ejecutar en CUALQUIER push a la rama 'main' (o 'master')
+  push:
+    branches: [ "main" ]
+    
+  # 2. Ejecutar cuando se cree (o actualice) un Pull Request (PR)
+  #    que apunte a la rama 'main'
+  pull_request:
+    branches: [ "main" ]
+
+# Trabajos (jobs) que se van a ejecutar
+jobs:
+  # Definimos un único trabajo llamado 'build-and-test'
+  build-and-test:
+    # La máquina virtual donde se ejecutará
+    runs-on: ubuntu-latest
+
+    # Los pasos que ejecutará la máquina
+    steps:
+      # Paso 1: Descargar el código de tu repositorio a la máquina virtual
+      - name: 1. Checkout del código
+        uses: actions/checkout@v4
+
+      # Paso 2: Configurar el entorno de Node.js
+      - name: 2. Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          # IMPORTANTE: Cambia '18' por la versión de Node.js que usas
+          # en tu desarrollo (ej. '16', '18', '20')
+          node-version: '18'
+          # Habilitar el caché de 'npm' para acelerar futuras ejecuciones
+          cache: 'npm'
+
+      # Paso 3: Instalar dependencias (Requerimiento 1)
+      # 'npm ci' es la versión rápida y estricta para CI
+      - name: 3. Instalar dependencias
+        run: npm ci
+
+      # Paso 4: Ejecutar pruebas automatizadas (Requerimiento 2 y 3)
+      #
+      # IMPORTANTE: Usamos 'CI=true'
+      # Esto le indica a Create React App (y setups similares)
+      # que ejecute las pruebas UNA SOLA VEZ y no en modo "watch".
+      # Si CUALQUIER prueba falla, el comando fallará y
+      # GitHub Actions detendrá el pipeline aquí.
+      - name: 4. Ejecutar pruebas automatizadas
+        run: CI=true npm run test
+        
+      # (Opcional pero recomendado) Paso 5: Construir el proyecto
+      # Esto verifica que tu proyecto compile correctamente
+      # (atrapa errores de TypeScript, imports, etc.)
+      - name: 5. Verificar build de producción
+        run: npm run build
