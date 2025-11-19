@@ -10,9 +10,21 @@ interface Zona {
   capacidad: number;
 }
 
+interface Slot {
+  id: number;
+  fila: string;
+  columna: string;
+  nivel: string;
+  capacidad: number;
+  estado: string;
+  id_zona: number;
+  zona_nombre?: string;
+  [key: string]: unknown;
+}
+
 const SlotsView: React.FC = () => {
   const navigate = useNavigate();
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<Slot[]>([]);
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -86,9 +98,10 @@ const SlotsView: React.FC = () => {
       await loadData();
       setForm({ fila: '', columna: '', nivel: '', estado: 'disponible', id_zona: '' });
       setEditingId(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error guardando slot:', err);
-      alert(`Error: ${err.message || 'Error desconocido'}`);
+      const error = err as Error;
+      alert(`Error: ${error.message || 'Error desconocido'}`);
     } finally {
       setLoading(false);
     }
@@ -109,7 +122,13 @@ const SlotsView: React.FC = () => {
 
   const userName = localStorage.getItem('userName') || 'Admin';
 
-  const columns: any[] = [
+  interface Column {
+    key: string;
+    label: string;
+    render?: (value: unknown, row?: unknown) => React.ReactNode;
+  }
+
+  const columns: Column[] = [
     { key: 'id', label: 'ID' },
     { key: 'fila', label: 'Fila' },
     { key: 'columna', label: 'Columna' },
@@ -117,7 +136,7 @@ const SlotsView: React.FC = () => {
     { 
       key: 'id_zona', 
       label: 'Zona',
-      render: (value: any) => {
+      render: (value: unknown) => {
         const zona = zonas.find(z => z.id === value);
         return zona ? zona.nombre : `ID: ${value}`;
       }
@@ -242,7 +261,7 @@ const SlotsView: React.FC = () => {
               {
                 key: 'actions',
                 label: 'Acciones',
-                render: (_: any, row: any) => (
+                render: (_: unknown, row: Slot) => (
                   <div className="flex gap-2">
                     <button
                       className="px-2 py-1 bg-amber-500 text-white rounded"

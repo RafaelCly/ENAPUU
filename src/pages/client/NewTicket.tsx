@@ -12,11 +12,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { tickets, fleet, portsSlots, users } from "@/data/mocks";
 
+interface User {
+  id: number;
+  name: string;
+  [key: string]: unknown;
+}
+
+interface Ticket {
+  id: number;
+  fecha: string;
+  [key: string]: unknown;
+}
+
 const NewTicket = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
-  const [generatedTicket, setGeneratedTicket] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [generatedTicket, setGeneratedTicket] = useState<Ticket | null>(null);
 
   const [formData, setFormData] = useState({
     contenedorId: "",

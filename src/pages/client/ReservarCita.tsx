@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Package, Ship, Clock } from 'lucide-react';
 import Navbar from '@/components/Navbar';
@@ -67,7 +67,7 @@ const ReservarCita: React.FC = () => {
     }
   };
 
-  const calcularDuracion = () => {
+  const calcularDuracion = useCallback(() => {
     if (form.fecha_envio && form.fecha_recojo) {
       const envio = new Date(form.fecha_envio);
       const recojo = new Date(form.fecha_recojo);
@@ -77,11 +77,11 @@ const ReservarCita: React.FC = () => {
         setForm(prev => ({ ...prev, duracion_viaje_dias: String(diferencia) }));
       }
     }
-  };
+  }, [form.fecha_envio, form.fecha_recojo]);
 
   useEffect(() => {
     calcularDuracion();
-  }, [form.fecha_envio, form.fecha_recojo]);
+  }, [calcularDuracion]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,9 +130,10 @@ const ReservarCita: React.FC = () => {
         duracion_viaje_dias: ''
       });
       navigate('/client/my-tickets');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creando reserva:', error);
-      alert(`Error: ${error.message || 'Error al crear la reserva'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Error al crear la reserva';
+      alert(`Error: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

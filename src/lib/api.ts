@@ -1,5 +1,35 @@
 const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
+// Types
+interface UserData {
+  email?: string;
+  password?: string;
+  nombre?: string;
+  role?: string;
+  [key: string]: unknown;
+}
+
+interface TicketData {
+  estado?: string;
+  usuario_id?: number;
+  [key: string]: unknown;
+}
+
+interface ContainerData {
+  numero_contenedor?: string;
+  [key: string]: unknown;
+}
+
+interface SlotData {
+  disponible?: boolean;
+  [key: string]: unknown;
+}
+
+interface BuqueData {
+  nombre?: string;
+  [key: string]: unknown;
+}
+
 export async function apiFetch(path: string, opts: RequestInit = {}) {
   const url = `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`;
   const headers = {
@@ -24,8 +54,8 @@ export const api = {
   usuarios: {
     list: () => apiFetch('/usuarios/'),
     get: (id: number) => apiFetch(`/usuarios/${id}/`),
-    create: (data: any) => apiFetch('/usuarios/', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: number, data: any) => apiFetch(`/usuarios/${id}/`, { method: 'PUT', body: JSON.stringify(data) }),
+    create: (data: UserData) => apiFetch('/usuarios/', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: UserData) => apiFetch(`/usuarios/${id}/`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: number) => apiFetch(`/usuarios/${id}/`, { method: 'DELETE' }),
     login: (email: string, password: string) => 
       apiFetch('/usuarios/login/', { method: 'POST', body: JSON.stringify({ email, password }) }),
@@ -36,8 +66,8 @@ export const api = {
   tickets: {
     list: () => apiFetch('/tickets/'),
     get: (id: number) => apiFetch(`/tickets/${id}/`),
-    create: (data: any) => apiFetch('/tickets/', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: number, data: any) => apiFetch(`/tickets/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
+    create: (data: TicketData) => apiFetch('/tickets/', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: TicketData) => apiFetch(`/tickets/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
     delete: (id: number) => apiFetch(`/tickets/${id}/`, { method: 'DELETE' }),
     byEstado: (estado: string) => apiFetch(`/tickets/by_estado/?estado=${estado}`),
     byUsuario: (usuarioId: number) => apiFetch(`/tickets/by_usuario/?usuario_id=${usuarioId}`),
@@ -49,8 +79,8 @@ export const api = {
   contenedores: {
     list: () => apiFetch('/contenedores/'),
     get: (id: number) => apiFetch(`/contenedores/${id}/`),
-    create: (data: any) => apiFetch('/contenedores/', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: number, data: any) => apiFetch(`/contenedores/${id}/`, { method: 'PUT', body: JSON.stringify(data) }),
+    create: (data: ContainerData) => apiFetch('/contenedores/', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: ContainerData) => apiFetch(`/contenedores/${id}/`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: number) => apiFetch(`/contenedores/${id}/`, { method: 'DELETE' }),
   },
 
@@ -64,14 +94,14 @@ export const api = {
   slots: {
     list: () => apiFetch('/slots/'),
     get: (id: number) => apiFetch(`/slots/${id}/`),
-    update: (id: number, data: any) => apiFetch(`/slots/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
+    update: (id: number, data: SlotData) => apiFetch(`/slots/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
   },
 
   // Buques
   buques: {
     list: () => apiFetch('/buques/'),
     get: (id: number) => apiFetch(`/buques/${id}/`),
-    create: (data: any) => apiFetch('/buques/', { method: 'POST', body: JSON.stringify(data) }),
+    create: (data: BuqueData) => apiFetch('/buques/', { method: 'POST', body: JSON.stringify(data) }),
   },
 
   // Roles

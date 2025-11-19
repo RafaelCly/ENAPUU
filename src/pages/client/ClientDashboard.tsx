@@ -8,11 +8,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
 
+interface Ticket {
+  id: number;
+  estado: string;
+  [key: string]: unknown;
+}
+
 const ClientDashboard = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
-  const [userTickets, setUserTickets] = useState<any[]>([]);
+  const [user, setUser] = useState<Record<string, unknown> | null>(null);
+  const [userTickets, setUserTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

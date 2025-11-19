@@ -10,7 +10,7 @@ import { notifications, users } from "@/data/mocks";
 const Notifications = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
